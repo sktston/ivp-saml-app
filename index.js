@@ -9,6 +9,7 @@ app.use(bodyParser.urlencoded({
 app.use(express.static("public"));
 
 // Create service provider
+const sp_client_id = "ingee-saml-client";
 const sp_host = "localhost";
 const sp_port = 3000;
 const sp_url = "http://" + sp_host + ":" + sp_port;
@@ -46,6 +47,9 @@ app.get("/login", function(req, res) {
     if (err != null)
       return res.send(500);
     res.redirect(login_url);
+    console.log("  - err=", err);
+    console.log("  - login_url=", login_url);
+    console.log("  - request_id=", request_id);
   });
 });
 

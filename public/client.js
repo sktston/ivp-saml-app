@@ -15,18 +15,22 @@ function init() {
     req.send();
   }
 
+  /*
   document.getElementById("btnLogin").onclick = function() {
     console.log("btnLogin clicked.");
     setMessage("btnLogin clicked.");
     let req = new XMLHttpRequest();
     req.open("GET", backendUrl + "/login", true);
     req.onreadystatechange = function() {
+      console.log("req.readyState=", req.readyState);
+      console.log("req.response=", req.response);
       if (req.readyState === XMLHttpRequest.DONE) {
         setMessage(req.response);
       }
     }
     req.send();
   }
+  */
 
   document.getElementById("btnAssert").onclick = function() {
     console.log("btnAssert clicked.");
