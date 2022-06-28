@@ -1,11 +1,12 @@
-var saml2 = require('saml2-js');
-var fs = require('fs');
-var express = require('express');
+var saml2 = require("saml2-js");
+var fs = require("fs");
+var express = require("express");
 var app = express();
-var bodyParser = require('body-parser');
+var bodyParser = require("body-parser");
 app.use(bodyParser.urlencoded({
   extended: true
 }));
+app.use(express.static("public"));
 
 // Create service provider
 const sp_host = "localhost";
@@ -33,12 +34,14 @@ var idp = new saml2.IdentityProvider(idp_options);
 
 // Endpoint to retrieve metadata
 app.get("/metadata.xml", function(req, res) {
-  res.type('application/xml');
+  console.log("/metadata.xml called");
+  res.type("application/xml");
   res.send(sp.create_metadata());
 });
 
 // Starting point for login
 app.get("/login", function(req, res) {
+  console.log("/login called");
   sp.create_login_request_url(idp, {}, function(err, login_url, request_id) {
     if (err != null)
       return res.send(500);
@@ -48,6 +51,7 @@ app.get("/login", function(req, res) {
 
 // Assert endpoint for when login completes
 app.post("/assert", function(req, res) {
+  console.log("/assert called");
   var options = {request_body: req.body};
   sp.post_assert(idp, options, function(err, saml_response) {
     if (err != null)
@@ -64,6 +68,7 @@ app.post("/assert", function(req, res) {
 
 // Starting point for logout
 app.get("/logout", function(req, res) {
+  console.log("/logout called");
   var options = {
     name_id: name_id,
     session_index: session_index
@@ -76,4 +81,6 @@ app.get("/logout", function(req, res) {
   });
 });
 
-//app.listen(3000);
+app.listen(3000);
+console.log("listening", sp_url);
+console.log("endpoints:", "/metadata.xml", "/login", "/assert", "/logout");
