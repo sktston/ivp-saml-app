@@ -9,17 +9,17 @@ app.use(bodyParser.urlencoded({
 app.use(express.static("public"));
 
 // Create service provider
-const sp_client_id = "ingee-saml-client";
 const sp_host = "localhost";
 const sp_port = 3000;
 const sp_url = "http://" + sp_host + ":" + sp_port;
 console.log("sp_url=", sp_url);
 
 var sp_options = {
-  entity_id: sp_url + "/metadata.xml",
+  entity_id: "localhost-saml-app",
   private_key: fs.readFileSync("key-priv.pem").toString(),
   certificate: fs.readFileSync("key-cert.crt").toString(),
-  assert_endpoint: sp_url + "/assert"
+  assert_endpoint: sp_url + "/assert",
+  sign_get_request: true
 };
 var sp = new saml2.ServiceProvider(sp_options);
 
@@ -32,17 +32,19 @@ var idp_options = {
 var idp = new saml2.IdentityProvider(idp_options);
 
 // ------ Define express endpoints ------
+var name_id;
+var session_index;
 
 // Endpoint to retrieve metadata
 app.get("/metadata.xml", function(req, res) {
-  console.log("/metadata.xml called");
+  console.log("GET /metadata.xml called");
   res.type("application/xml");
   res.send(sp.create_metadata());
 });
 
 // Starting point for login
 app.get("/login", function(req, res) {
-  console.log("/login called");
+  console.log("GET /login called");
   sp.create_login_request_url(idp, {}, function(err, login_url, request_id) {
     if (err != null)
       return res.send(500);
@@ -55,7 +57,7 @@ app.get("/login", function(req, res) {
 
 // Assert endpoint for when login completes
 app.post("/assert", function(req, res) {
-  console.log("/assert called");
+  console.log("POST /assert called");
   var options = {request_body: req.body};
   sp.post_assert(idp, options, function(err, saml_response) {
     if (err != null)
@@ -65,26 +67,38 @@ app.post("/assert", function(req, res) {
     // Note:  In practice these should be saved in the user session, not globally.
     name_id = saml_response.user.name_id;
     session_index = saml_response.user.session_index;
+    console.log("  - saml_response=", saml_response);
+    console.log("  - stringified saml_response=", JSON.stringify(saml_response));
 
-    res.send("Hello #{saml_response.user.name_id}!");
+    res.send(`Hello ${saml_response.user.name_id}!`);
   });
+});
+
+// Assert endpoint for when logout completes
+app.get("/assert", function(req, res) {
+  console.log("GET /assert called");
+  res.send(`Bye~ ${name_id}!`);
 });
 
 // Starting point for logout
 app.get("/logout", function(req, res) {
-  console.log("/logout called");
+  console.log("GET /logout called");
   var options = {
     name_id: name_id,
     session_index: session_index
   };
+  console.log("  - options=", options);
 
   sp.create_logout_request_url(idp, options, function(err, logout_url) {
+    console.log("  - sp.create_logout_request_url() called");
+    console.log("  - err=", err);
+    console.log("  - logout_url=", logout_url);
     if (err != null)
       return res.send(500);
     res.redirect(logout_url);
   });
 });
 
-app.listen(3000);
+app.listen(sp_port);
 console.log("listening", sp_url);
-console.log("endpoints:", "/metadata.xml", "/login", "/assert", "/logout");
+console.log("endpoints: /metadata.xml, /login, /assert, /logout");
